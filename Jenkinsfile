@@ -2,41 +2,13 @@ pipeline {
     agent any
 
     parameters {
-        string(name: 'REPO_URL',
-               defaultValue: 'https://github.com/Soumyakc-161/test-repo-jenkiness.git',
-               description: 'GitHub Repo URL')
+        string(name: 'REPO_URL', defaultValue: 'https://github.com/SurajHalakati/my-jenkins-project.git', description: 'Repo URL')
+        string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'Enter Branch Name')
 
-        string(name: 'BRANCH_NAME',
-               defaultValue: 'main',
-               description: 'Enter Branch Name')
+        string(name: 'RESOURCE_GROUP', defaultValue: 'cft-rg', description: 'Resource Group Name')
+        choice(name: 'LOCATION', choices: ['southindia', 'eastus', 'centralindia'], description: 'Azure Location')
 
-        string(name: 'RESOURCE_GROUP',
-               defaultValue: 'cft-rg',
-               description: 'Resource Group Name')
-
-        choice(name: 'LOCATION',
-               choices: ['southindia', 'eastus', 'centralindia'],
-               description: 'Azure Location')
-
-        choice(name: 'ACTION',
-               choices: ['VALIDATE', 'WHAT_IF', 'DEPLOY'],
-               description: 'Select Action')
-
-        string(name: 'STORAGE_TEMPLATE',
-               defaultValue: 'azure-adf-e2e/arm-template/storage-account/storage.json',
-               description: 'Storage ARM Template (.json)')
-
-        string(name: 'STORAGE_PARAMS',
-               defaultValue: 'azure-adf-e2e/arm-template/storage-account/storage.parameters.json',
-               description: 'Storage Parameters (.json)')
-
-        string(name: 'ADF_TEMPLATE',
-               defaultValue: 'azure-adf-e2e/arm-template/data-factory/linkedTemplates/ArmTemplate_master.json',
-               description: 'ADF ARM Template (.json)')
-
-        string(name: 'ADF_PARAMS',
-               defaultValue: 'azure-adf-e2e/arm-template/data-factory/linkedTemplates/ArmTemplateParameters_master.json',
-               description: 'ADF Parameters (.json)')
+        choice(name: 'ACTION', choices: ['VALIDATE', 'WHAT_IF', 'DEPLOY'], description: 'Select Action')
     }
 
     stages {
@@ -63,7 +35,7 @@ pipeline {
         stage("Checkout Repo") {
             steps {
                 git branch: "${params.BRANCH_NAME}", url: "${params.REPO_URL}"
-                echo "Checkout completed"
+                echo "Checkout done"
             }
         }
 
@@ -71,10 +43,10 @@ pipeline {
             steps {
                 script {
                     def files = [
-                        params.STORAGE_TEMPLATE,
-                        params.STORAGE_PARAMS,
-                        params.ADF_TEMPLATE,
-                        params.ADF_PARAMS
+                        "arm-templates/storage/storage.json",
+                        "arm-templates/storage/storage.parameters.json",
+                        "arm-templates/adf/ArmTemplate_master.json",
+                        "arm-templates/adf/ArmTemplateParameters_master.json"
                     ]
 
                     for (f in files) {
@@ -82,7 +54,7 @@ pipeline {
                             error("Missing file: ${f}")
                         }
                         if (!f.toLowerCase().endsWith(".json")) {
-                            error("Only .json files allowed. Wrong file: ${f}")
+                            error("Only .json allowed. Wrong file: ${f}")
                         }
                     }
 
@@ -93,23 +65,10 @@ pipeline {
 
         stage("JSON Syntax Check") {
             steps {
-                script {
-                    def jsonFiles = [
-                        params.STORAGE_TEMPLATE,
-                        params.STORAGE_PARAMS,
-                        params.ADF_TEMPLATE,
-                        params.ADF_PARAMS
-                    ]
-
-                    for (f in jsonFiles) {
-                        echo "Checking JSON: ${f}"
-                        bat """
-                        powershell -Command "Get-Content '${f}' -Raw | ConvertFrom-Json | Out-Null"
-                        """
-                    }
-
-                    echo "JSON syntax is valid"
-                }
+                bat """
+                powershell -Command "Get-ChildItem -Recurse -Filter *.json | ForEach-Object { Get-Content $_.FullName -Raw | ConvertFrom-Json | Out-Null }"
+                """
+                echo "JSON syntax OK"
             }
         }
 
@@ -141,13 +100,11 @@ pipeline {
                     ).trim()
 
                     if (rgExists == "true") {
-                        error("Resource Group '${params.RESOURCE_GROUP}' already exists. Pipeline failed.")
+                        error("Resource Group already exists: ${params.RESOURCE_GROUP}")
                     }
 
                     bat """
-                    az group create ^
-                      --name ${params.RESOURCE_GROUP} ^
-                      --location ${params.LOCATION}
+                    az group create --name ${params.RESOURCE_GROUP} --location ${params.LOCATION}
                     """
                 }
             }
@@ -161,15 +118,15 @@ pipeline {
                 bat """
                 az deployment group validate ^
                   --resource-group ${params.RESOURCE_GROUP} ^
-                  --template-file ${params.STORAGE_TEMPLATE} ^
-                  --parameters @${params.STORAGE_PARAMS}
+                  --template-file arm-templates/storage/storage.json ^
+                  --parameters @arm-templates/storage/storage.parameters.json
                 """
 
                 bat """
                 az deployment group validate ^
                   --resource-group ${params.RESOURCE_GROUP} ^
-                  --template-file ${params.ADF_TEMPLATE} ^
-                  --parameters @${params.ADF_PARAMS}
+                  --template-file arm-templates/adf/ArmTemplate_master.json ^
+                  --parameters @arm-templates/adf/ArmTemplateParameters_master.json
                 """
             }
         }
@@ -182,15 +139,15 @@ pipeline {
                 bat """
                 az deployment group what-if ^
                   --resource-group ${params.RESOURCE_GROUP} ^
-                  --template-file ${params.STORAGE_TEMPLATE} ^
-                  --parameters @${params.STORAGE_PARAMS}
+                  --template-file arm-templates/storage/storage.json ^
+                  --parameters @arm-templates/storage/storage.parameters.json
                 """
 
                 bat """
                 az deployment group what-if ^
                   --resource-group ${params.RESOURCE_GROUP} ^
-                  --template-file ${params.ADF_TEMPLATE} ^
-                  --parameters @${params.ADF_PARAMS}
+                  --template-file arm-templates/adf/ArmTemplate_master.json ^
+                  --parameters @arm-templates/adf/ArmTemplateParameters_master.json
                 """
             }
         }
@@ -204,16 +161,16 @@ pipeline {
                 az deployment group create ^
                   --resource-group ${params.RESOURCE_GROUP} ^
                   --mode Complete ^
-                  --template-file ${params.STORAGE_TEMPLATE} ^
-                  --parameters @${params.STORAGE_PARAMS}
+                  --template-file arm-templates/storage/storage.json ^
+                  --parameters @arm-templates/storage/storage.parameters.json
                 """
 
                 bat """
                 az deployment group create ^
                   --resource-group ${params.RESOURCE_GROUP} ^
                   --mode Complete ^
-                  --template-file ${params.ADF_TEMPLATE} ^
-                  --parameters @${params.ADF_PARAMS}
+                  --template-file arm-templates/adf/ArmTemplate_master.json ^
+                  --parameters @arm-templates/adf/ArmTemplateParameters_master.json
                 """
             }
         }
