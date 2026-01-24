@@ -13,6 +13,10 @@ pipeline {
         string(name: 'BRANCH_NAME',
                defaultValue: 'main',
                description: 'Enter Branch Name')
+
+        choice(name: 'ACTION',
+               choices: ['VALIDATE', 'WHAT_IF', 'DEPLOY'],
+               description: 'Select Action')
     }
 
     stages {
@@ -20,7 +24,7 @@ pipeline {
         stage("Check Branch Name") {
             steps {
                 script {
-                    echo "Selected Branch: ${params.BRANCH_NAME}"
+                    echo "Branch Selected: ${params.BRANCH_NAME}"
 
                     def out = bat(
                         script: "git ls-remote --heads ${params.REPO_URL} ${params.BRANCH_NAME}",
@@ -31,7 +35,7 @@ pipeline {
                         error("Branch '${params.BRANCH_NAME}' not found. Pipeline failed.")
                     }
 
-                    echo "Branch is correct ✅"
+                    echo "Branch found: ${params.BRANCH_NAME}"
                 }
             }
         }
@@ -43,23 +47,26 @@ pipeline {
                     branches: [[name: "*/${params.BRANCH_NAME}"]],
                     userRemoteConfigs: [[url: "${params.REPO_URL}"]]
                 ])
-                echo "Repo checkout success ✅"
+                echo "Checkout completed"
             }
         }
 
-        stage("Build Success") {
+        stage("Validate") {
+            when { expression { return params.ACTION == 'VALIDATE' } }
             steps {
-                echo "Pipeline passed successfully ✅"
+                echo "✅ Validate Stage Running (TEST MODE)"
+                bat "echo Validating ARM JSON templates..."
+                bat "dir arm-templates"
+                bat "dir arm-templates\\storage"
+                bat "dir arm-templates\\adf"
+                echo "✅ Validate Completed (Simulated)"
             }
         }
-    }
 
-    post {
-        success {
-            echo "✅ SUCCESS"
-        }
-        failure {
-            echo "❌ FAILED"
-        }
-    }
-}
+        stage("What-If") {
+            when { expression { return params.ACTION == 'WHAT_IF' } }
+            steps {
+                echo "✅ What-If Stage Running (TEST MODE)"
+                bat "echo Showing What-If output..."
+                bat "echo Would create Storage Account + Containers"
+                bat "echo Would create Data Factor
