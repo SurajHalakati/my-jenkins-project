@@ -26,6 +26,23 @@ pipeline {
                 '''
             }
         }
+
+        stage("Build (Create ZIP)") {
+            steps {
+                echo "📦 Creating ZIP artifact..."
+                bat '''
+                if not exist output mkdir output
+                powershell Compress-Archive -Path * -DestinationPath output\\arm_templates.zip -Force
+                '''
+            }
+        }
+
+        stage("Archive Artifact") {
+            steps {
+                archiveArtifacts artifacts: "output/*.zip", fingerprint: true
+                echo "✅ Artifact archived in Jenkins"
+            }
+        }
     }
 
     post {
