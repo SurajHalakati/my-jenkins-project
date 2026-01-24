@@ -14,6 +14,14 @@ pipeline {
                defaultValue: 'main',
                description: 'Enter Branch Name')
 
+        string(name: 'RESOURCE_GROUP',
+               defaultValue: 'cft-rg',
+               description: 'Resource Group Name')
+
+        choice(name: 'LOCATION',
+               choices: ['southindia', 'eastus', 'centralindia'],
+               description: 'Azure Location')
+
         choice(name: 'ACTION',
                choices: ['VALIDATE', 'WHAT_IF', 'DEPLOY'],
                description: 'Select Action')
@@ -51,22 +59,100 @@ pipeline {
             }
         }
 
-        stage("Validate") {
-            when { expression { return params.ACTION == 'VALIDATE' } }
+        stage("Create Resource Group") {
+            when {
+                expression { return params.ACTION == 'DEPLOY' }
+            }
             steps {
-                echo "✅ Validate Stage Running (TEST MODE)"
-                bat "echo Validating ARM JSON templates..."
-                bat "dir arm-templates"
-                bat "dir arm-templates\\storage"
-                bat "dir arm-templates\\adf"
-                echo "✅ Validate Completed (Simulated)"
+                script {
+                    def rgExists = bat(
+                        script: "az group exists --name ${params.RESOURCE_GROUP}",
+                        returnStdout: true
+                    ).trim()
+
+                    if (rgExists == "true") {
+                        error("Resource Group already exists: ${params.RESOURCE_GROUP}")
+                    }
+
+                    bat """
+                    az group create --name ${params.RESOURCE_GROUP} --location ${params.LOCATION}
+                    """
+                }
             }
         }
 
-        stage("What-If") {
-            when { expression { return params.ACTION == 'WHAT_IF' } }
+        stage("ARM Validate") {
+            when {
+                expression { return params.ACTION == 'VALIDATE' }
+            }
             steps {
-                echo "✅ What-If Stage Running (TEST MODE)"
-                bat "echo Showing What-If output..."
-                bat "echo Would create Storage Account + Containers"
-                bat "echo Would create Data Factor
+                bat """
+                az deployment group validate ^
+                  --resource-group ${params.RESOURCE_GROUP} ^
+                  --template-file arm-templates/storage/storage.json ^
+                  --parameters @arm-templates/storage/storage.parameters.json
+                """
+
+                bat """
+                az deployment group validate ^
+                  --resource-group ${params.RESOURCE_GROUP} ^
+                  --template-file arm-templates/adf/ArmTemplate_master.json ^
+                  --parameters @arm-templates/adf/ArmTemplateParameters_master.json
+                """
+            }
+        }
+
+        stage("ARM What-If") {
+            when {
+                expression { return params.ACTION == 'WHAT_IF' }
+            }
+            steps {
+                bat """
+                az deployment group what-if ^
+                  --resource-group ${params.RESOURCE_GROUP} ^
+                  --template-file arm-templates/storage/storage.json ^
+                  --parameters @arm-templates/storage/storage.parameters.json
+                """
+
+                bat """
+                az deployment group what-if ^
+                  --resource-group ${params.RESOURCE_GROUP} ^
+                  --template-file arm-templates/adf/ArmTemplate_master.json ^
+                  --parameters @arm-templates/adf/ArmTemplateParameters_master.json
+                """
+            }
+        }
+
+        stage("Deploy Storage + ADF") {
+            when {
+                expression { return params.ACTION == 'DEPLOY' }
+            }
+            steps {
+                bat """
+                az deployment group create ^
+                  --resource-group ${params.RESOURCE_GROUP} ^
+                  --mode Complete ^
+                  --template-file arm-templates/storage/storage.json ^
+                  --parameters @arm-templates/storage/storage.parameters.json
+                """
+
+                bat """
+                az deployment group create ^
+                  --resource-group ${params.RESOURCE_GROUP} ^
+                  --mode Complete ^
+                  --template-file arm-templates/adf/ArmTemplate_master.json ^
+                  --parameters @arm-templates/adf/ArmTemplateParameters_master.json
+                """
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Pipeline success"
+        }
+        failure {
+            echo "Pipeline failed. Check console output"
+        }
+    }
+}
