@@ -13,18 +13,6 @@ pipeline {
         string(name: 'BRANCH_NAME',
                defaultValue: 'main',
                description: 'Enter Branch Name')
-
-        string(name: 'RESOURCE_GROUP',
-               defaultValue: 'cft-rg',
-               description: 'Resource Group Name')
-
-        choice(name: 'LOCATION',
-               choices: ['southindia', 'eastus', 'centralindia'],
-               description: 'Azure Location')
-
-        choice(name: 'ACTION',
-               choices: ['VALIDATE', 'WHAT_IF', 'DEPLOY'],
-               description: 'Select Action')
     }
 
     stages {
@@ -32,7 +20,7 @@ pipeline {
         stage("Check Branch Name") {
             steps {
                 script {
-                    echo "Branch Selected: ${params.BRANCH_NAME}"
+                    echo "Selected Branch: ${params.BRANCH_NAME}"
 
                     def out = bat(
                         script: "git ls-remote --heads ${params.REPO_URL} ${params.BRANCH_NAME}",
@@ -43,7 +31,7 @@ pipeline {
                         error("Branch '${params.BRANCH_NAME}' not found. Pipeline failed.")
                     }
 
-                    echo "Branch found: ${params.BRANCH_NAME}"
+                    echo "Branch is correct ✅"
                 }
             }
         }
@@ -55,9 +43,23 @@ pipeline {
                     branches: [[name: "*/${params.BRANCH_NAME}"]],
                     userRemoteConfigs: [[url: "${params.REPO_URL}"]]
                 ])
-                echo "Checkout completed"
+                echo "Repo checkout success ✅"
             }
         }
 
-        stage("Create Resource Group") {
-            when {
+        stage("Build Success") {
+            steps {
+                echo "Pipeline passed successfully ✅"
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ SUCCESS"
+        }
+        failure {
+            echo "❌ FAILED"
+        }
+    }
+}
