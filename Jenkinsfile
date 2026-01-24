@@ -2,19 +2,41 @@ pipeline {
     agent any
 
     parameters {
-        string(name: 'REPO_URL', defaultValue: 'https://github.com/Soumyakc-161/test-repo-jenkiness.git', description: 'GitHub Repo URL')
-        string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'Enter branch name')
+        string(name: 'REPO_URL',
+               defaultValue: 'https://github.com/Soumyakc-161/test-repo-jenkiness.git',
+               description: 'GitHub Repo URL')
 
-        string(name: 'RESOURCE_GROUP', defaultValue: 'cft-rg', description: 'Resource Group Name')
-        choice(name: 'LOCATION', choices: ['southindia', 'eastus', 'centralindia'], description: 'Azure Location')
+        string(name: 'BRANCH_NAME',
+               defaultValue: 'main',
+               description: 'Enter Branch Name')
 
-        choice(name: 'ACTION', choices: ['VALIDATE', 'WHAT_IF', 'DEPLOY'], description: 'Select action')
+        string(name: 'RESOURCE_GROUP',
+               defaultValue: 'cft-rg',
+               description: 'Resource Group Name')
 
-        string(name: 'STORAGE_TEMPLATE', defaultValue: 'azure-adf-e2e/arm-template/storage-account/storage.json', description: 'Storage template path')
-        string(name: 'STORAGE_PARAMS', defaultValue: 'azure-adf-e2e/arm-template/storage-account/storage.parameters.json', description: 'Storage parameters path')
+        choice(name: 'LOCATION',
+               choices: ['southindia', 'eastus', 'centralindia'],
+               description: 'Azure Location')
 
-        string(name: 'ADF_TEMPLATE', defaultValue: 'azure-adf-e2e/arm-template/data-factory/linkedTemplates/ArmTemplate_master.json', description: 'ADF template path')
-        string(name: 'ADF_PARAMS', defaultValue: 'azure-adf-e2e/arm-template/data-factory/linkedTemplates/ArmTemplateParameters_master.json', description: 'ADF parameters path')
+        choice(name: 'ACTION',
+               choices: ['VALIDATE', 'WHAT_IF', 'DEPLOY'],
+               description: 'Select Action')
+
+        string(name: 'STORAGE_TEMPLATE',
+               defaultValue: 'azure-adf-e2e/arm-template/storage-account/storage.json',
+               description: 'Storage ARM Template (.json)')
+
+        string(name: 'STORAGE_PARAMS',
+               defaultValue: 'azure-adf-e2e/arm-template/storage-account/storage.parameters.json',
+               description: 'Storage Parameters (.json)')
+
+        string(name: 'ADF_TEMPLATE',
+               defaultValue: 'azure-adf-e2e/arm-template/data-factory/linkedTemplates/ArmTemplate_master.json',
+               description: 'ADF ARM Template (.json)')
+
+        string(name: 'ADF_PARAMS',
+               defaultValue: 'azure-adf-e2e/arm-template/data-factory/linkedTemplates/ArmTemplateParameters_master.json',
+               description: 'ADF Parameters (.json)')
     }
 
     stages {
@@ -22,7 +44,7 @@ pipeline {
         stage("Check Branch Name") {
             steps {
                 script {
-                    echo "Checking branch name: ${params.BRANCH_NAME}"
+                    echo "Branch Selected: ${params.BRANCH_NAME}"
 
                     def out = bat(
                         script: "git ls-remote --heads ${params.REPO_URL} ${params.BRANCH_NAME}",
@@ -41,7 +63,7 @@ pipeline {
         stage("Checkout Repo") {
             steps {
                 git branch: "${params.BRANCH_NAME}", url: "${params.REPO_URL}"
-                echo "Checked out branch: ${params.BRANCH_NAME}"
+                echo "Checkout completed"
             }
         }
 
@@ -64,7 +86,7 @@ pipeline {
                         }
                     }
 
-                    echo "All required files are present"
+                    echo "All required files found"
                 }
             }
         }
@@ -80,13 +102,13 @@ pipeline {
                     ]
 
                     for (f in jsonFiles) {
-                        echo "Checking JSON syntax: ${f}"
+                        echo "Checking JSON: ${f}"
                         bat """
                         powershell -Command "Get-Content '${f}' -Raw | ConvertFrom-Json | Out-Null"
                         """
                     }
 
-                    echo "JSON syntax check passed"
+                    echo "JSON syntax is valid"
                 }
             }
         }
@@ -199,7 +221,7 @@ pipeline {
 
     post {
         success {
-            echo "Pipeline completed successfully"
+            echo "Pipeline success"
         }
         failure {
             echo "Pipeline failed. Check console output"
