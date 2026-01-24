@@ -9,10 +9,10 @@ pipeline {
         }
 
         stage("List Files") {
-            steps {
-                sh "ls -la"
-            }
-        }
+    steps {
+        bat "dir"
+    }
+}
     }
 
     post {
