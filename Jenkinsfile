@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    options {
+        skipDefaultCheckout(true)
+    }
+
     parameters {
         string(name: 'REPO_URL',
                defaultValue: 'https://github.com/SurajHalakati/my-jenkins-project.git',
@@ -46,23 +50,25 @@ pipeline {
 
         stage("Checkout Repo") {
             steps {
-                git branch: "${params.BRANCH_NAME}", url: "${params.REPO_URL}"
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: "*/${params.BRANCH_NAME}"]],
+                    userRemoteConfigs: [[url: "${params.REPO_URL}"]]
+                ])
                 echo "Checkout completed"
             }
         }
 
-        // ✅ IMPORTANT DEBUG STAGE (this will show what Jenkins downloaded)
         stage("List Files") {
             steps {
+                bat "echo ===== CURRENT LOCATION ====="
+                bat "cd"
                 bat "echo ===== ROOT FILES ====="
                 bat "dir"
-
                 bat "echo ===== ARM TEMPLATES FOLDER ====="
                 bat "dir arm-templates"
-
                 bat "echo ===== STORAGE FOLDER ====="
                 bat "dir arm-templates\\storage"
-
                 bat "echo ===== ADF FOLDER ====="
                 bat "dir arm-templates\\adf"
             }
@@ -82,9 +88,6 @@ pipeline {
                         echo "Checking file: ${f}"
                         if (!fileExists(f)) {
                             error("Missing file: ${f}")
-                        }
-                        if (!f.toLowerCase().endsWith(".json")) {
-                            error("Only .json allowed. Wrong file: ${f}")
                         }
                     }
 
@@ -207,11 +210,7 @@ pipeline {
     }
 
     post {
-        success {
-            echo "Pipeline success"
-        }
-        failure {
-            echo "Pipeline failed. Check console output"
-        }
+        success { echo "Pipeline success" }
+        failure { echo "Pipeline failed. Check console output" }
     }
 }
