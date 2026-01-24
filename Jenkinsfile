@@ -2,13 +2,25 @@ pipeline {
     agent any
 
     parameters {
-        string(name: 'REPO_URL', defaultValue: 'https://github.com/SurajHalakati/my-jenkins-project.git', description: 'Repo URL')
-        string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'Enter Branch Name')
+        string(name: 'REPO_URL',
+               defaultValue: 'https://github.com/SurajHalakati/my-jenkins-project.git',
+               description: 'Repo URL')
 
-        string(name: 'RESOURCE_GROUP', defaultValue: 'cft-rg', description: 'Resource Group Name')
-        choice(name: 'LOCATION', choices: ['southindia', 'eastus', 'centralindia'], description: 'Azure Location')
+        string(name: 'BRANCH_NAME',
+               defaultValue: 'main',
+               description: 'Enter Branch Name')
 
-        choice(name: 'ACTION', choices: ['VALIDATE', 'WHAT_IF', 'DEPLOY'], description: 'Select Action')
+        string(name: 'RESOURCE_GROUP',
+               defaultValue: 'cft-rg',
+               description: 'Resource Group Name')
+
+        choice(name: 'LOCATION',
+               choices: ['southindia', 'eastus', 'centralindia'],
+               description: 'Azure Location')
+
+        choice(name: 'ACTION',
+               choices: ['VALIDATE', 'WHAT_IF', 'DEPLOY'],
+               description: 'Select Action')
     }
 
     stages {
@@ -35,7 +47,24 @@ pipeline {
         stage("Checkout Repo") {
             steps {
                 git branch: "${params.BRANCH_NAME}", url: "${params.REPO_URL}"
-                echo "Checkout done"
+                echo "Checkout completed"
+            }
+        }
+
+        // ✅ IMPORTANT DEBUG STAGE (this will show what Jenkins downloaded)
+        stage("List Files") {
+            steps {
+                bat "echo ===== ROOT FILES ====="
+                bat "dir"
+
+                bat "echo ===== ARM TEMPLATES FOLDER ====="
+                bat "dir arm-templates"
+
+                bat "echo ===== STORAGE FOLDER ====="
+                bat "dir arm-templates\\storage"
+
+                bat "echo ===== ADF FOLDER ====="
+                bat "dir arm-templates\\adf"
             }
         }
 
@@ -50,6 +79,7 @@ pipeline {
                     ]
 
                     for (f in files) {
+                        echo "Checking file: ${f}"
                         if (!fileExists(f)) {
                             error("Missing file: ${f}")
                         }
