@@ -1,158 +1,39 @@
 pipeline {
     agent any
 
-    options {
-        skipDefaultCheckout(true)
-    }
-
     parameters {
-        string(name: 'REPO_URL',
-               defaultValue: 'https://github.com/SurajHalakati/my-jenkins-project.git',
-               description: 'Repo URL')
-
-        string(name: 'BRANCH_NAME',
-               defaultValue: 'main',
-               description: 'Enter Branch Name')
-
-        string(name: 'RESOURCE_GROUP',
-               defaultValue: 'cft-rg',
-               description: 'Resource Group Name')
-
-        choice(name: 'LOCATION',
-               choices: ['southindia', 'eastus', 'centralindia'],
-               description: 'Azure Location')
-
-        choice(name: 'ACTION',
-               choices: ['VALIDATE', 'WHAT_IF', 'DEPLOY'],
-               description: 'Select Action')
+        string(name: 'BRANCH_NAME', defaultValue: 'feature/test_repo', description: 'Enter branch name')
     }
 
     stages {
 
-        stage("Check Branch Name") {
+        stage('Validate Branch & Checkout') {
             steps {
                 script {
-                    echo "Branch Selected: ${params.BRANCH_NAME}"
+                    def repoUrl = "https://github.com/Soumyakc-161/test-repo-jenkiness.git"
 
-                    def out = bat(
-                        script: "git ls-remote --heads ${params.REPO_URL} ${params.BRANCH_NAME}",
-                        returnStdout: true
-                    ).trim()
+                    echo "Branch entered: ${params.BRANCH_NAME}"
 
-                    if (!out || out.length() == 0) {
-                        error("Branch '${params.BRANCH_NAME}' not found. Pipeline failed.")
+                    // Try to checkout the entered branch
+                    try {
+                        checkout([$class: 'GitSCM',
+                            branches: [[name: "*/${params.BRANCH_NAME}"]],
+                            userRemoteConfigs: [[url: repoUrl]]
+                        ])
+
+                        echo "✅ Branch is correct. Checkout successful!"
                     }
-
-                    echo "Branch found: ${params.BRANCH_NAME}"
+                    catch (err) {
+                        error "❌ Branch is WRONG or not found: ${params.BRANCH_NAME}"
+                    }
                 }
             }
         }
 
-        stage("Checkout Repo") {
+        stage('Success') {
             steps {
-                checkout([
-                    $class: 'GitSCM',
-                    branches: [[name: "*/${params.BRANCH_NAME}"]],
-                    userRemoteConfigs: [[url: "${params.REPO_URL}"]]
-                ])
-                echo "Checkout completed"
+                echo "✅ Pipeline Passed"
             }
-        }
-
-        stage("Create Resource Group") {
-            when {
-                expression { return params.ACTION == 'DEPLOY' }
-            }
-            steps {
-                script {
-                    def rgExists = bat(
-                        script: "az group exists --name ${params.RESOURCE_GROUP}",
-                        returnStdout: true
-                    ).trim()
-
-                    if (rgExists == "true") {
-                        error("Resource Group already exists: ${params.RESOURCE_GROUP}")
-                    }
-
-                    bat """
-                    az group create --name ${params.RESOURCE_GROUP} --location ${params.LOCATION}
-                    """
-                }
-            }
-        }
-
-        stage("ARM Validate") {
-            when {
-                expression { return params.ACTION == 'VALIDATE' }
-            }
-            steps {
-                bat """
-                az deployment group validate ^
-                  --resource-group ${params.RESOURCE_GROUP} ^
-                  --template-file arm-templates/storage/storage.json ^
-                  --parameters @arm-templates/storage/storage.parameters.json
-                """
-
-                bat """
-                az deployment group validate ^
-                  --resource-group ${params.RESOURCE_GROUP} ^
-                  --template-file arm-templates/adf/ArmTemplate_master.json ^
-                  --parameters @arm-templates/adf/ArmTemplateParameters_master.json
-                """
-            }
-        }
-
-        stage("ARM What-If") {
-            when {
-                expression { return params.ACTION == 'WHAT_IF' }
-            }
-            steps {
-                bat """
-                az deployment group what-if ^
-                  --resource-group ${params.RESOURCE_GROUP} ^
-                  --template-file arm-templates/storage/storage.json ^
-                  --parameters @arm-templates/storage/storage.parameters.json
-                """
-
-                bat """
-                az deployment group what-if ^
-                  --resource-group ${params.RESOURCE_GROUP} ^
-                  --template-file arm-templates/adf/ArmTemplate_master.json ^
-                  --parameters @arm-templates/adf/ArmTemplateParameters_master.json
-                """
-            }
-        }
-
-        stage("Deploy Storage + ADF") {
-            when {
-                expression { return params.ACTION == 'DEPLOY' }
-            }
-            steps {
-                bat """
-                az deployment group create ^
-                  --resource-group ${params.RESOURCE_GROUP} ^
-                  --mode Complete ^
-                  --template-file arm-templates/storage/storage.json ^
-                  --parameters @arm-templates/storage/storage.parameters.json
-                """
-
-                bat """
-                az deployment group create ^
-                  --resource-group ${params.RESOURCE_GROUP} ^
-                  --mode Complete ^
-                  --template-file arm-templates/adf/ArmTemplate_master.json ^
-                  --parameters @arm-templates/adf/ArmTemplateParameters_master.json
-                """
-            }
-        }
-    }
-
-    post {
-        success {
-            echo "Pipeline success"
-        }
-        failure {
-            echo "Pipeline failed. Check console output"
         }
     }
 }
