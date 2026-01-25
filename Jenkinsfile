@@ -2,19 +2,31 @@ pipeline {
     agent any
 
     parameters {
-        string(name: 'BRANCH_NAME', defaultValue: 'feature/test_repo', description: 'Enter branch name')
+        string(
+            name: 'BRANCH_NAME',
+            defaultValue: '',
+            description: 'Enter branch name manually (Example: feature/test_repo)'
+        )
     }
 
     stages {
+
+        stage('Check Branch Input') {
+            steps {
+                script {
+                    if (!params.BRANCH_NAME?.trim()) {
+                        error "❌ Branch name is empty! Please enter a branch name and run again."
+                    }
+                    echo "✅ Branch entered: ${params.BRANCH_NAME}"
+                }
+            }
+        }
 
         stage('Validate Branch & Checkout') {
             steps {
                 script {
                     def repoUrl = "https://github.com/Soumyakc-161/test-repo-jenkiness.git"
 
-                    echo "Branch entered: ${params.BRANCH_NAME}"
-
-                    // Try to checkout the entered branch
                     try {
                         checkout([$class: 'GitSCM',
                             branches: [[name: "*/${params.BRANCH_NAME}"]],
@@ -37,3 +49,4 @@ pipeline {
         }
     }
 }
+
