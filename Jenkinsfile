@@ -5,7 +5,7 @@ pipeline {
         string(
             name: 'BRANCH_NAME',
             defaultValue: '',
-            description: 'Enter branch name manually (Example: feature/test_repo)'
+            description: 'Enter branch name manually'
         )
     }
 
