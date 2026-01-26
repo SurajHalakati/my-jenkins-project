@@ -30,38 +30,30 @@ pipeline {
             }
         }
 
-        stage('Success') {
-            steps {
-                echo "✅ Pipeline Passed"
-            }
-        }
-
         stage('Validate Files') {
-            steps {
-                script {
-                    echo "✅ Validating allowed files..."
+    steps {
+        script {
+            echo "✅ Validating allowed files..."
 
-                    def invalidFiles = sh(
-                        script: """
-                        find . -type f \
-                        ! -name '*.json' \
-                        ! -name 'Jenkinsfile' \
-                        ! -name 'README.md' \
-                        ! -path './.git/*'
-                        """,
-                        returnStdout: true
-                    ).trim()
+            def invalidFiles = sh(
+                script: """
+                find . -type f \
+                ! -name '*.json' \
+                ! -name 'Jenkinsfile' \
+                ! -name 'README.md' \
+                ! -path './.git/*'
+                """,
+                returnStdout: true
+            ).trim()
 
-                    if (invalidFiles) {
-                        echo "❌ WHY FAILED: These files are NOT allowed:"
-                        echo "${invalidFiles}"
-                        error "❌ Pipeline failed بسبب invalid files!"
-                    } else {
-                        echo "✅ All files are valid!"
-                    }
-                }
+            if (invalidFiles) {
+                echo "❌ WHY FAILED: These files are NOT allowed:"
+                echo "${invalidFiles}"
+                error "❌ Invalid files found!"
+            } else {
+                echo "✅ All files are valid!"
             }
         }
-
     }
 }
+
