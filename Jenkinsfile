@@ -35,29 +35,28 @@ pipeline {
             }
         }
 
-        stage('Validate Files') {
-            steps {
-                script {
-                    echo "✅ Validating allowed files..."
+       stage('Validate Files') {
+    steps {
+        script {
+            echo "✅ Validating allowed files..."
 
-                    def invalidFiles = sh(
-                        script: """
-                        find . -type f \
-                        ! -name '*.json' \
-                        ! -name 'Jenkinsfile' \
-                        ! -path './.git/*'
-                        """,
-                        returnStdout: true
-                    ).trim()
+            def invalidFiles = sh(
+                script: """
+                find . -type f \
+                ! -name '*.json' \
+                ! -name 'Jenkinsfile' \
+                ! -path './.git/*'
+                """,
+                returnStdout: true
+            ).trim()
 
-                    if (invalidFiles) {
-                        error "❌ Invalid files found:\n${invalidFiles}\n\n✅ Allowed: only .json + Jenkinsfile"
-                    } else {
-                        echo "✅ All files are valid!"
-                    }
-                }
+            echo "📌 Invalid files output:\n${invalidFiles}"
+
+            if (invalidFiles) {
+                error "❌ Invalid files found:\n${invalidFiles}\n\n✅ Allowed: only .json + Jenkinsfile"
+            } else {
+                echo "✅ All files are valid!"
             }
         }
-
     }
 }
