@@ -42,3 +42,26 @@ pipeline {
         }
     }
 }
+stage('Validate Files') {
+    steps {
+        script {
+            echo "✅ Validating allowed files..."
+
+            def invalidFiles = sh(
+                script: """
+                find . -type f \
+                ! -name '*.json' \
+                ! -name 'Jenkinsfile' \
+                ! -path './.git/*'
+                """,
+                returnStdout: true
+            ).trim()
+
+            if (invalidFiles) {
+                error "❌ Invalid files found (only .json + Jenkinsfile allowed):\n${invalidFiles}"
+            }
+
+            echo "✅ File validation passed (Only .json + Jenkinsfile)"
+        }
+    }
+}
