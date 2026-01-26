@@ -37,7 +37,7 @@ pipeline {
 
                     def invalidFiles = bat(
                         script: """
-                        powershell -Command 'Get-ChildItem -Recurse -File | Where-Object { $_.Name -notmatch "\\.json$" -and $_.Name -ne "Jenkinsfile" -and $_.Name -ne "README.md" } | Select-Object -ExpandProperty FullName'
+                        powershell -Command "Get-ChildItem -Recurse -File -Exclude *.json,Jenkinsfile,README.md | Select-Object -ExpandProperty FullName"
                         """,
                         returnStdout: true
                     ).trim()
