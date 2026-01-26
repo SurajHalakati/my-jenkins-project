@@ -7,12 +7,6 @@ pipeline {
 
     stages {
 
-        stage('Test Timestamp') {
-            steps {
-                echo "✅ Feature branch test running at: ${new Date()}"
-            }
-        }
-
         stage('Validate Branch & Checkout') {
             steps {
                 script {
@@ -40,6 +34,30 @@ pipeline {
                 echo "✅ Pipeline Passed"
             }
         }
+
+        stage('Validate Files') {
+            steps {
+                script {
+                    echo "✅ Validating allowed files..."
+
+                    def invalidFiles = sh(
+                        script: """
+                        find . -type f \
+                        ! -name '*.json' \
+                        ! -name 'Jenkinsfile' \
+                        ! -path './.git/*'
+                        """,
+                        returnStdout: true
+                    ).trim()
+
+                    if (invalidFiles) {
+                        error "❌ Invalid files found:\n${invalidFiles}\n\n✅ Allowed: only .json + Jenkinsfile"
+                    } else {
+                        echo "✅ All files are valid!"
+                    }
+                }
+            }
+        }
+
     }
 }
-
