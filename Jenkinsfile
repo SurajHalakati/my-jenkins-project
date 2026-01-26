@@ -45,18 +45,22 @@ pipeline {
                 find . -type f \
                 ! -name '*.json' \
                 ! -name 'Jenkinsfile' \
+                ! -name 'README.md' \
                 ! -path './.git/*'
                 """,
                 returnStdout: true
             ).trim()
 
-            echo "📌 Invalid files output:\n${invalidFiles}"
-
             if (invalidFiles) {
-                error "❌ Invalid files found:\n${invalidFiles}\n\n✅ Allowed: only .json + Jenkinsfile"
+                // ✅ This will show WHY it's failing
+                echo "❌ WHY FAILED: These files are NOT allowed:"
+                echo "${invalidFiles}"
+
+                error "❌ Pipeline failed بسبب invalid files!"
             } else {
                 echo "✅ All files are valid!"
             }
         }
     }
 }
+
