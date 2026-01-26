@@ -7,6 +7,12 @@ pipeline {
 
     stages {
 
+        stage('Test Timestamp') {
+            steps {
+                echo "✅ Feature branch test running at: ${new Date()}"
+            }
+        }
+
         stage('Validate Branch & Checkout') {
             steps {
                 script {
