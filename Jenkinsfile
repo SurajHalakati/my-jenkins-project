@@ -35,13 +35,9 @@ pipeline {
                 script {
                     echo "✅ Validating allowed files..."
 
-                    def invalidFiles = sh(
+                    def invalidFiles = bat(
                         script: """
-                        find . -type f \
-                        ! -name '*.json' \
-                        ! -name 'Jenkinsfile' \
-                        ! -name 'README.md' \
-                        ! -path './.git/*'
+                        powershell -Command "Get-ChildItem -Recurse -File | Where-Object { $_.Name -notmatch '\\\\.json$' -and $_.Name -ne 'Jenkinsfile' -and $_.Name -ne 'README.md' } | Select-Object -ExpandProperty FullName"
                         """,
                         returnStdout: true
                     ).trim()
