@@ -23,6 +23,7 @@ pipeline {
                         echo "✅ Branch is correct. Checkout successful!"
                     }
                     catch (err) {
+                        echo "❌ Actual error: ${err}"
                         error "❌ Branch is WRONG or not found: ${params.BRANCH_NAME}"
                     }
                 }
@@ -35,32 +36,32 @@ pipeline {
             }
         }
 
-       stage('Validate Files') {
-    steps {
-        script {
-            echo "✅ Validating allowed files..."
+        stage('Validate Files') {
+            steps {
+                script {
+                    echo "✅ Validating allowed files..."
 
-            def invalidFiles = sh(
-                script: """
-                find . -type f \
-                ! -name '*.json' \
-                ! -name 'Jenkinsfile' \
-                ! -name 'README.md' \
-                ! -path './.git/*'
-                """,
-                returnStdout: true
-            ).trim()
+                    def invalidFiles = sh(
+                        script: """
+                        find . -type f \
+                        ! -name '*.json' \
+                        ! -name 'Jenkinsfile' \
+                        ! -name 'README.md' \
+                        ! -path './.git/*'
+                        """,
+                        returnStdout: true
+                    ).trim()
 
-            if (invalidFiles) {
-                // ✅ This will show WHY it's failing
-                echo "❌ WHY FAILED: These files are NOT allowed:"
-                echo "${invalidFiles}"
-
-                error "❌ Pipeline failed بسبب invalid files!"
-            } else {
-                echo "✅ All files are valid!"
+                    if (invalidFiles) {
+                        echo "❌ WHY FAILED: These files are NOT allowed:"
+                        echo "${invalidFiles}"
+                        error "❌ Pipeline failed بسبب invalid files!"
+                    } else {
+                        echo "✅ All files are valid!"
+                    }
+                }
             }
         }
+
     }
 }
-
