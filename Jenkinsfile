@@ -70,13 +70,26 @@ pipeline {
             }
         }
 
-        // ✅ ONLY MOVED INSIDE – NOTHING ELSE CHANGED
         stage('ARM Validate - Data Factory') {
             steps {
                 echo "✅ Validating Data Factory ARM template..."
 
                 sh """
                 az deployment group validate \
+                  --resource-group rg-validation \
+                  --template-file azure-adf-e2e/arm-templates/data-factory/ARMTemplateForFactory.json \
+                  --parameters azure-adf-e2e/arm-templates/data-factory/ARMTemplateParametersForFactory.json
+                """
+            }
+        }
+
+        // 🔽 ONLY NEW STAGE ADDED
+        stage('ARM What-If - Data Factory') {
+            steps {
+                echo "🔍 Previewing Azure changes using ARM What-If..."
+
+                sh """
+                az deployment group what-if \
                   --resource-group rg-validation \
                   --template-file azure-adf-e2e/arm-templates/data-factory/ARMTemplateForFactory.json \
                   --parameters azure-adf-e2e/arm-templates/data-factory/ARMTemplateParametersForFactory.json
