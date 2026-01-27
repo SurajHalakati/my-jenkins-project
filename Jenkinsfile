@@ -104,11 +104,5 @@ pipeline {
                                  fingerprint: true
             }
         }
-
-        stage('Success') {
-            steps {
-                echo "✅ Pipeline Passed"
-            }
-        }
     }
 }
