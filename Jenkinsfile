@@ -19,9 +19,11 @@ pipeline {
                             branches: [[name: "*/${params.BRANCH_NAME}"]],
                             userRemoteConfigs: [[url: repoUrl]]
                         ])
+
                         echo "✅ Branch is correct. Checkout successful!"
-                    } catch (err) {
-                        error "❌ Branch validation failed. Branch not found: ${params.BRANCH_NAME}"
+                    }
+                    catch (err) {
+                        error "❌ Branch is WRONG or not found: ${params.BRANCH_NAME}"
                     }
                 }
             }
@@ -44,12 +46,13 @@ pipeline {
                         ).trim()
 
                         if (invalidFiles) {
-                            error "❌ Invalid files detected:\n${invalidFiles}"
+                            error "❌ Invalid files found (only .json + Jenkinsfile allowed):\n${invalidFiles}"
                         }
 
-                        echo "✅ File validation passed"
-                    } catch (err) {
-                        echo "⚠ Validate Files failed — continuing for learning"
+                        echo "✅ File validation passed (Only .json + Jenkinsfile)"
+                    }
+                    catch (err) {
+                        echo "❌ Validate Files failed, but continuing pipeline"
                     }
                 }
             }
@@ -82,7 +85,7 @@ pipeline {
 
         stage('ARM What-If - Data Factory') {
             steps {
-                echo "🔍 Previewing Azure changes (What-If)..."
+                echo "🔍 Previewing Azure changes using ARM What-If..."
 
                 sh """
                 az deployment group what-if \
@@ -95,7 +98,7 @@ pipeline {
 
         stage('Publish ARM Artifact') {
             steps {
-                echo "📦 Publishing validated ARM templates as artifact..."
+                echo "📦 Publishing ARM templates as artifact..."
 
                 archiveArtifacts artifacts: 'azure-adf-e2e/arm-templates/**/*.json',
                                  fingerprint: true
@@ -104,25 +107,8 @@ pipeline {
 
         stage('Success') {
             steps {
-                echo "✅ CI Pipeline completed"
+                echo "✅ Pipeline Passed"
             }
-        }
-    }
-
-    post {
-        failure {
-            echo "❌ PIPELINE FAILED"
-            echo "👉 Check the RED stage above"
-            echo "👉 Open Console Output"
-            echo "👉 Look for 'ERROR' or 'az deployment' messages"
-        }
-
-        success {
-            echo "🎉 PIPELINE SUCCESS"
-        }
-
-        always {
-            echo "ℹ Pipeline execution finished"
         }
     }
 }
