@@ -83,7 +83,6 @@ pipeline {
             }
         }
 
-        // 🔽 ONLY NEW STAGE ADDED
         stage('ARM What-If - Data Factory') {
             steps {
                 echo "🔍 Previewing Azure changes using ARM What-If..."
@@ -97,8 +96,7 @@ pipeline {
             }
         }
 
-        
-                stage('Publish ARM Artifact') {
+        stage('Publish ARM Artifact') {
             steps {
                 echo "📦 Publishing ARM templates as artifact..."
 
@@ -106,11 +104,25 @@ pipeline {
                                  fingerprint: true
             }
         }
+
         stage('Success') {
             steps {
                 echo "✅ Pipeline Passed"
             }
         }
+    }
 
+    // 🔴 ONLY ADDITION — FAILURE VISIBILITY
+    post {
+        failure {
+            echo "❌ PIPELINE FAILED"
+            echo "👉 Check the stage marked RED above"
+            echo "👉 Scroll up in Console Output to see the exact az command error"
+            echo "👉 Most common reasons:"
+            echo "   - Azure login not done (az login)"
+            echo "   - Resource group does not exist"
+            echo "   - Template path incorrect"
+            echo "   - Permission issue"
+        }
     }
 }
