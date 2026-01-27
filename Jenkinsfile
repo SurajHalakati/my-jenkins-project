@@ -29,7 +29,6 @@ pipeline {
             }
         }
 
-        // 🔽 ONLY THIS STAGE IS SLIGHTLY MODIFIED
         stage('Validate Files') {
             steps {
                 script {
@@ -53,7 +52,7 @@ pipeline {
                         echo "✅ File validation passed (Only .json + Jenkinsfile)"
                     }
                     catch (err) {
-                        echo "❌ Validate Files failed, but continuing pipeline to next stage"
+                        echo "❌ Validate Files failed, but continuing pipeline"
                     }
                 }
             }
@@ -71,6 +70,20 @@ pipeline {
             }
         }
 
+        // ✅ ONLY MOVED INSIDE – NOTHING ELSE CHANGED
+        stage('ARM Validate - Data Factory') {
+            steps {
+                echo "✅ Validating Data Factory ARM template..."
+
+                sh """
+                az deployment group validate \
+                  --resource-group rg-validation \
+                  --template-file azure-adf-e2e/arm-templates/data-factory/ARMTemplateForFactory.json \
+                  --parameters azure-adf-e2e/arm-templates/data-factory/ARMTemplateParametersForFactory.json
+                """
+            }
+        }
+
         stage('Success') {
             steps {
                 echo "✅ Pipeline Passed"
@@ -78,16 +91,3 @@ pipeline {
         }
     }
 }
-        stage('ARM Validate - Data Factory') {
-    steps {
-        echo "✅ Validating Data Factory ARM template..."
-
-        sh """
-        az deployment group validate \
-          --resource-group rg-validation \
-          --template-file azure-adf-e2e/arm-templates/data-factory/ARMTemplateForFactory.json \
-          --parameters azure-adf-e2e/arm-templates/data-factory/ARMTemplateParametersForFactory.json
-        """
-    }
-}
-
