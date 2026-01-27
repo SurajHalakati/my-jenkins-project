@@ -19,11 +19,9 @@ pipeline {
                             branches: [[name: "*/${params.BRANCH_NAME}"]],
                             userRemoteConfigs: [[url: repoUrl]]
                         ])
-
                         echo "✅ Branch is correct. Checkout successful!"
-                    }
-                    catch (err) {
-                        error "❌ Branch is WRONG or not found: ${params.BRANCH_NAME}"
+                    } catch (err) {
+                        error "❌ Branch validation failed. Branch not found: ${params.BRANCH_NAME}"
                     }
                 }
             }
@@ -46,13 +44,12 @@ pipeline {
                         ).trim()
 
                         if (invalidFiles) {
-                            error "❌ Invalid files found (only .json + Jenkinsfile allowed):\n${invalidFiles}"
+                            error "❌ Invalid files detected:\n${invalidFiles}"
                         }
 
-                        echo "✅ File validation passed (Only .json + Jenkinsfile)"
-                    }
-                    catch (err) {
-                        echo "❌ Validate Files failed, but continuing pipeline"
+                        echo "✅ File validation passed"
+                    } catch (err) {
+                        echo "⚠ Validate Files failed — continuing for learning"
                     }
                 }
             }
@@ -85,7 +82,7 @@ pipeline {
 
         stage('ARM What-If - Data Factory') {
             steps {
-                echo "🔍 Previewing Azure changes using ARM What-If..."
+                echo "🔍 Previewing Azure changes (What-If)..."
 
                 sh """
                 az deployment group what-if \
@@ -98,7 +95,7 @@ pipeline {
 
         stage('Publish ARM Artifact') {
             steps {
-                echo "📦 Publishing ARM templates as artifact..."
+                echo "📦 Publishing validated ARM templates as artifact..."
 
                 archiveArtifacts artifacts: 'azure-adf-e2e/arm-templates/**/*.json',
                                  fingerprint: true
@@ -107,22 +104,25 @@ pipeline {
 
         stage('Success') {
             steps {
-                echo "✅ Pipeline Passed"
+                echo "✅ CI Pipeline completed"
             }
         }
     }
 
-    // 🔴 ONLY ADDITION — FAILURE VISIBILITY
     post {
         failure {
             echo "❌ PIPELINE FAILED"
-            echo "👉 Check the stage marked RED above"
-            echo "👉 Scroll up in Console Output to see the exact az command error"
-            echo "👉 Most common reasons:"
-            echo "   - Azure login not done (az login)"
-            echo "   - Resource group does not exist"
-            echo "   - Template path incorrect"
-            echo "   - Permission issue"
+            echo "👉 Check the RED stage above"
+            echo "👉 Open Console Output"
+            echo "👉 Look for 'ERROR' or 'az deployment' messages"
+        }
+
+        success {
+            echo "🎉 PIPELINE SUCCESS"
+        }
+
+        always {
+            echo "ℹ Pipeline execution finished"
         }
     }
 }
