@@ -97,17 +97,18 @@ pipeline {
             }
         }
 
-        stage('Success') {
-            steps {
-                echo "✅ Pipeline Passed"
-            }
-        }
+        
                 stage('Publish ARM Artifact') {
             steps {
                 echo "📦 Publishing ARM templates as artifact..."
 
                 archiveArtifacts artifacts: 'azure-adf-e2e/arm-templates/**/*.json',
                                  fingerprint: true
+            }
+        }
+        stage('Success') {
+            steps {
+                echo "✅ Pipeline Passed"
             }
         }
 
