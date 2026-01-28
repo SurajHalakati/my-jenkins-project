@@ -96,7 +96,7 @@ pipeline {
             }
         }
 
-        stage('Publish ARM Artifact') {
+        stage('Publish ARM Artifact hh') {
             steps {
                 echo " Publishing ARM templates as artifact..."
 
