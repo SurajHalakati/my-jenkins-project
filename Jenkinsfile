@@ -98,7 +98,7 @@ pipeline {
 
         stage('Publish ARM Artifact') {
             steps {
-                echo "📦 Publishing ARM templates as artifact..."
+                echo " Publishing ARM templates as artifact..."
 
                 archiveArtifacts artifacts: 'azure-adf-e2e/arm-templates/**/*.json',
                                  fingerprint: true
