@@ -85,7 +85,7 @@ pipeline {
 
         stage('ARM What-If - Data Factory') {
             steps {
-                echo "🔍 Previewing Azure changes using ARM What-If..."
+                echo " Previewing Azure changes using ARM What-If..."
 
                 sh """
                 az deployment group what-if \
